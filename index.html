@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="踩雷記錄">
+<title>踩雷記錄</title>
+<style>
+:root{
+  --bg:#f0f2f5; --card:#ffffff; --ink:#1a1a1a; --muted:#555;
+  --line:#d0d5dd; --blue:#1565c0; --ok:#2e7d32; --bad:#c62828;
+  --radius:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Heiti TC",sans-serif;
+  background:var(--bg);color:var(--ink);
+  padding-bottom:90px;
+  font-size:30px;
+}
+
+/* Header */
+header{
+  position:sticky;top:0;z-index:20;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
+  border-bottom:2px solid var(--line);
+  padding:calc(12px + env(safe-area-inset-top)) 20px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+header h1{font-size:26px;margin:0;font-weight:800}
+.header-right{display:flex;align-items:center;gap:14px}
+.stats{display:flex;gap:16px}
+.stats span{font-size:20px;color:var(--muted)}
+.stats b{color:var(--ink);font-size:19px}
+.menu-btn{
+  width:40px;height:40px;border-radius:10px;border:2px solid var(--line);
+  background:var(--card);font-size:22px;line-height:36px;text-align:center;
+  cursor:pointer;color:var(--ink);flex:none;
+}
+
+/* Tabs */
+.tabs{
+  display:flex;flex-wrap:wrap;gap:8px;
+  padding:14px 14px 0;
+}
+.tab{
+  flex:1 1 calc(33.33% - 8px);
+  max-width:calc(33.33% - 6px);
+  text-align:center;
+  padding:10px 6px;border-radius:var(--radius);
+  background:var(--card);border:2px solid var(--line);
+  font-size:18px;font-weight:700;color:var(--muted);
+  cursor:pointer;user-select:none;
+}
+.tab .cnt{display:block;font-size:13px;font-weight:400;margin-top:2px;color:var(--muted)}
+.tab.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.tab.active .cnt{color:#aaa}
+
+/* Search */
+.toolbar{display:flex;gap:10px;padding:14px;padding-top:6px}
+.search{
+  flex:1;display:flex;align-items:center;gap:8px;
+  background:var(--card);border:2px solid var(--line);
+  border-radius:var(--radius);padding:12px 14px;
+}
+.search input{border:0;outline:0;font-size:22px;flex:1;background:transparent;color:var(--ink);min-width:0}
+.search input::placeholder{color:#aaa}
+
+/* Cards */
+section{padding:10px 14px 16px}
+.card{
+  background:var(--card);border:2px solid var(--line);
+  border-radius:var(--radius);margin-bottom:14px;overflow:hidden;
+}
+.card .top{display:flex;padding:16px;gap:12px;align-items:flex-start}
+.card .top .main{flex:1;min-width:0}
+.card .top h3{margin:0;font-size:24px;font-weight:800;line-height:1.3}
+.card .top .sub{font-size:16px;color:var(--muted);margin-top:4px}
+.card .top .note{font-size:20px;margin:8px 0 0;color:#333;line-height:1.6;white-space:pre-wrap}
+.badge{font-size:16px;font-weight:800;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.badge.ok{background:#e8f5e9;color:var(--ok)}
+.badge.bad{background:#ffebee;color:var(--bad)}
+.card-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.card-actions .act{
+  font-size:16px;font-weight:700;cursor:pointer;padding:4px 0;
+}
+.card-actions .act.edit{color:var(--blue)}
+.card-actions .act.del{color:var(--bad)}
+.empty{text-align:center;color:var(--muted);font-size:20px;padding:48px 20px}
+.empty .big{font-size:48px;margin-bottom:10px}
+
+/* Modal */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+  display:none;align-items:flex-end;
+}
+.overlay.show{display:flex}
+.sheet{
+  background:var(--card);width:100%;border-radius:20px 20px 0 0;
+  padding:20px 20px calc(20px + env(safe-area-inset-bottom));
+  max-height:90vh;overflow-y:auto;animation:up .25s ease;
+  -webkit-overflow-scrolling:touch;
+}
+@keyframes up{from{transform:translateY(40px);opacity:.3}to{transform:none;opacity:1}}
+.sheet h2{font-size:26px;margin:0 0 18px;font-weight:800}
+
+label.f{display:block;font-size:20px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+input.f,textarea.f{
+  width:100%;border:2px solid var(--line);border-radius:var(--radius);
+  padding:16px;font-size:22px;outline:0;background:#fafbfc;color:var(--ink);
+  font-family:inherit;
+}
+input.f:focus,textarea.f:focus{border-color:var(--blue)}
+textarea.f{min-height:90px;resize:vertical;line-height:1.5}
+
+.seg{display:flex;gap:10px;margin-top:4px}
+.seg button{
+  flex:1;padding:14px 0;border-radius:var(--radius);
+  border:2px solid var(--line);background:#fafbfc;
+  font-size:21px;font-weight:700;color:var(--muted);cursor:pointer;
+}
+.seg button.sel-ok{background:#e8f5e9;border-color:var(--ok);color:var(--ok)}
+.seg button.sel-bad{background:#ffebee;border-color:var(--bad);color:var(--bad)}
+.seg button.sel-cat{background:#e3f2fd;border-color:var(--blue);color:var(--blue)}
+
+/* 分類選擇：多個時自動換行，每排最多 3 個 */
+#catSeg{flex-wrap:wrap}
+#catSeg button{
+  flex:1 1 calc(33.33% - 10px);
+  min-width:calc(33.33% - 10px);
+  font-size:18px;padding:12px 4px;
+}
+
+/* Image picker */
+.imgpick{
+  margin-top:14px;border:2px dashed var(--line);border-radius:var(--radius);
+  padding:12px;position:relative;cursor:pointer;
+  min-height:100px;
+}
+.imgpick .hint{
+  font-size:20px;color:var(--muted);text-align:center;padding:24px 0;font-weight:600;
+  pointer-events:none;
+}
+.imgpick.has .hint{display:none}
+.imgpick .imgs{display:none;gap:8px;flex-wrap:wrap}
+.imgpick.has .imgs{display:flex}
+.imgpick .imgs .box{width:90px;height:90px;position:relative;flex:none}
+.imgpick .imgs img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.imgpick .imgs .x{
+  position:absolute;top:-8px;right:-8px;width:28px;height:28px;border-radius:50%;
+  background:var(--ink);color:#fff;font-size:16px;line-height:26px;text-align:center;
+  cursor:pointer;border:2px solid #fff;z-index:2;
+}
+.imgpick .add{
+  width:90px;height:90px;border-radius:8px;border:2px dashed var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;color:var(--muted);cursor:pointer;flex:none;background:#fafbfc;
+}
+input.img-input{display:none;position:absolute;width:0;height:0;opacity:0}
+
+/* Buttons */
+.btns{display:flex;gap:10px;margin-top:22px}
+.btns button{
+  flex:1;padding:16px 0;border-radius:var(--radius);
+  font-size:21px;font-weight:700;cursor:pointer;
+  border:2px solid var(--line);background:#fafbfc;color:var(--ink);
+}
+.btns button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btns button.danger{background:#ffebee;color:var(--bad);border-color:var(--bad)}
+
+/* FAB */
+.fab{
+  position:fixed;right:20px;bottom:24px;z-index:30;
+  width:68px;height:68px;border-radius:20px;
+  background:#1a1a1a;color:#fff;font-size:32px;line-height:66px;
+  text-align:center;cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);
+}
+
+/* Fullscreen image viewer */
+img.listimg{width:100%;border-radius:12px;margin-top:12px;display:block;cursor:pointer}
+.imgviewer{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;
+  display:none;align-items:center;justify-content:center;
+}
+.imgviewer.show{display:flex}
+.imgviewer img{max-width:100%;max-height:90vh;border-radius:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💣 踩雷記錄</h1>
+  <div class="header-right">
+    <div class="stats">
+      <span>👍 <b id="statOk">0</b></span>
+      <span>💣 <b id="statBad">0</b></span>
+    </div>
+    <div class="menu-btn" id="menuBtn" title="備份">⚙️</div>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="toolbar">
+  <div class="search">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="q" type="search" placeholder="搜尋店名、地區…">
+  </div>
+</div>
+
+<section id="list"></section>
+
+<div class="fab" id="fab">＋</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <h2 id="modalTitle">新增記錄</h2>
+
+    <label class="f">分類</label>
+    <div class="seg" id="catSeg"></div>
+
+    <label class="f">店名 *</label>
+    <input class="f" id="fShop" type="text" placeholder="例如：麥當勞 信義店" autocomplete="off">
+
+    <label class="f">地區 / 地址（可留空）</label>
+    <input class="f" id="fArea" type="text" placeholder="例如：台北信義區" autocomplete="off">
+
+    <label class="f">是讚還是雷？ *</label>
+    <div class="seg">
+      <button type="button" id="bOk">👍 值得推薦</button>
+      <button type="button" id="bBad">💣 踩雷</button>
+    </div>
+
+    <label class="f">備註（可留空）</label>
+    <textarea class="f" id="fNote" placeholder="例如：雞腿肉柴柴的、服務很好…"></textarea>
+
+    <label class="f">圖片（點擊下方區域選擇，或直接貼上）</label>
+    <div class="imgpick" id="imgpick">
+      <div class="hint">＋ 選擇圖片或貼上</div>
+      <div class="imgs" id="imgs"></div>
+      <input type="file" id="fImg" class="img-input" accept="image/*" multiple>
+    </div>
+
+    <div class="btns" id="modalBtns">
+      <button type="button" id="cancel">取消</button>
+      <button type="button" class="primary" id="save">存檔</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup / Settings sheet -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h2>備份與還原</h2>
+    <p style="font-size:18px;color:var(--muted);margin:0 0 18px;line-height:1.5">
+      資料存在本機，建議定期匯出備份。<br>
+      目前共有 <b id="backupCount">0</b> 筆記錄。
+    </p>
+    <div class="btns" style="flex-direction:column;gap:12px">
+      <button type="button" class="primary" id="btnExport">📤 匯出備份（JSON）</button>
+      <button type="button" id="btnImport">📥 匯入資料</button>
+      <button type="button" id="btnClear" style="color:var(--bad)">🗑️ 清空全部資料</button>
+      <button type="button" id="backupClose">關閉</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+  </div>
+</div>
+
+<!-- Image viewer -->
+<div class="imgviewer" id="viewer">
+  <img id="viewerImg" src="" alt="">
+</div>
+
+<script>
+"use strict";
+const CATS = [
+  {id:"meal",  name:"餐點", icon:"🍜"},
+  {id:"drink", name:"飲料", icon:"🥤"},
+  {id:"snack", name:"零食", icon:"🍪"},
+  {id:"street",name:"小吃", icon:"🍢"},
+  {id:"ice",   name:"冰品", icon:"🍧"},
+];
+const KEY = "leirecord.v2";
+let data = load();
+let activeCat = "all";
+let query = "";
+let editingId = null; // null = 新增模式，有值 = 編輯模式
+
+function load(){
+  try{ return JSON.parse(localStorage.getItem(KEY)) || {records:[]}; }
+  catch(e){ return {records:[]}; }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(data)); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+// ── Tabs ────────────────────────────────────────────────
+const tabsEl = document.getElementById("tabs");
+function buildTabs(){
+  tabsEl.innerHTML = "";
+  const items = [{id:"all",name:"全部",icon:"📋"}, ...CATS];
+  items.forEach(c=>{
+    const n = c.id==="all" ? data.records.length : data.records.filter(r=>r.cat===c.id).length;
+    const t = document.createElement("div");
+    t.className = "tab" + (activeCat===c.id?" active":"");
+    t.innerHTML = `<span>${c.icon} ${c.name}</span><span class="cnt">${n} 筆</span>`;
+    t.onclick = ()=>{ activeCat=c.id; buildTabs(); render(); };
+    tabsEl.appendChild(t);
+  });
+}
+
+// ── List ────────────────────────────────────────────────
+const listEl = document.getElementById("list");
+function catMeta(id){ return CATS.find(c=>c.id===id) || {name:"?",icon:""}; }
+function esc(s){ const d=document.createElement("i"); d.textContent=s||""; return d.innerHTML; }
+
+function render(){
+  const q = query.trim().toLowerCase();
+  let recs = data.records.slice().sort((a,b)=>b.ts-a.ts);
+  if(activeCat!=="all") recs = recs.filter(r=>r.cat===activeCat);
+  if(q) recs = recs.filter(r=>
+    (r.shop||"").toLowerCase().includes(q) ||
+    (r.area||"").toLowerCase().includes(q) ||
+    (r.note||"").toLowerCase().includes(q));
+
+  document.getElementById("statOk").textContent = data.records.filter(r=>r.good).length;
+  document.getElementById("statBad").textContent = data.records.filter(r=>!r.good).length;
+
+  if(!recs.length){
+    listEl.innerHTML = `<div class="empty"><div class="big">${q?"🔍":"📝"}</div>${q?"沒有符合搜尋的記錄":"還沒有記錄，按右下角 ＋ 開始吧"}</div>`;
+    return;
+  }
+  listEl.innerHTML = recs.map(r=>{
+    const cm = catMeta(r.cat);
+    const imgs = (r.imgs||[]).map(src=>`<img class="listimg" src="${src}" data-src="${src}" alt="">`).join("");
+    return `<div class="card" data-id="${r.id}">
+      <div class="top">
+        <div class="main">
+          <h3>${esc(r.shop)}</h3>
+          <div class="sub">${cm.icon} ${esc(cm.name)}${r.area?" · "+esc(r.area):""} · ${new Date(r.ts).toLocaleDateString("zh-TW")}</div>
+          ${r.note?`<p class="note">${esc(r.note)}</p>`:""}
+        </div>
+        <div class="card-actions">
+          <span class="badge ${r.good?"ok":"bad"}">${r.good?"👍 推薦":"💣 雷"}</span>
+          <span class="act edit" data-edit="${r.id}">編輯</span>
+          <span class="act del" data-del="${r.id}">刪除</span>
+        </div>
+      </div>
+      ${imgs}
+    </div>`;
+  }).join("");
+
+  // 刪除
+  listEl.querySelectorAll("[data-del]").forEach(el=>{
+    el.onclick = (e)=>{
+      e.stopPropagation();
+      const id = el.dataset.del;
+      if(confirm("確定要刪除這筆記錄嗎？")){
+        data.records = data.records.filter(r=>r.id!==id);
+        save(); buildTabs(); render();
+      }
+    };
+  });
+
+  // 編輯
+  listEl.querySelectorAll("[data-edit]").forEach(el=>{
+    el.onclick = (e)=>{
+      e.stopPropagation();
+      openEdit(el.dataset.edit);
+    };
+  });
+
+  // 圖片預覽
+  listEl.querySelectorAll(".listimg").forEach(im=>{
+    im.loading="lazy";
+    im.onclick = (e)=>{
+      e.stopPropagation();
+      const src = im.dataset.src || im.src;
+      document.getElementById("viewerImg").src = src;
+      document.getElementById("viewer").classList.add("show");
+    };
+  });
+}
+
+document.getElementById("viewer").onclick = ()=>{
+  document.getElementById("viewer").classList.remove("show");
+};
+
+document.getElementById("q").addEventListener("input", e=>{ query=e.target.value; render(); });
+
+// ── Modal state ─────────────────────────────────────────
+let selCat = "meal", selGood = null, selImgs = [];
+const catSeg = document.getElementById("catSeg");
+
+function buildCatSeg(){
+  catSeg.innerHTML="";
+  CATS.forEach(c=>{
+    const b=document.createElement("button");
+    b.type="button"; b.textContent=c.icon+" "+c.name;
+    if(selCat===c.id) b.classList.add("sel-cat");
+    b.onclick=()=>{ selCat=c.id; buildCatSeg(); };
+    catSeg.appendChild(b);
+  });
+}
+function paintGood(){
+  document.getElementById("bOk").className = selGood===true ? "sel-ok" : "";
+  document.getElementById("bBad").className = selGood===false ? "sel-bad" : "";
+}
+function renderImgs(){
+  const wrap=document.getElementById("imgpick"), box=document.getElementById("imgs");
+  wrap.classList.toggle("has", selImgs.length>0);
+  box.innerHTML = selImgs.map((s,i)=>
+    `<div class="box"><img src="${s}" alt=""><span class="x" data-i="${i}">×</span></div>`
+  ).join("") + (selImgs.length < 9 ? `<div class="add" id="addMore">＋</div>` : "");
+
+  box.querySelectorAll(".x").forEach(el=>{
+    el.onclick = (e)=>{
+      e.stopPropagation();
+      selImgs.splice(+el.dataset.i, 1);
+      renderImgs();
+    };
+  });
+  const am = document.getElementById("addMore");
+  if(am) am.onclick = (e)=>{ e.stopPropagation(); openFilePicker(); };
+}
+
+function openFilePicker(){
+  document.getElementById("fImg").click();
+}
+
+// 點擊整個圖片區域（空狀態時）也可選圖
+document.getElementById("imgpick").addEventListener("click", (e)=>{
+  // 如果點的是刪除按鈕或已有圖片的加號，就不要再觸發
+  if(e.target.closest(".x") || e.target.closest(".add")) return;
+  if(selImgs.length === 0) openFilePicker();
+});
+
+// ── Open modal (新增) ───────────────────────────────────
+function openNew(){
+  editingId = null;
+  document.getElementById("modalTitle").textContent = "新增記錄";
+  document.getElementById("fShop").value = "";
+  document.getElementById("fArea").value = "";
+  document.getElementById("fNote").value = "";
+  selCat = "meal";
+  selGood = null;
+  selImgs = [];
+  buildCatSeg();
+  paintGood();
+  renderImgs();
+  // 移除可能殘留的刪除按鈕
+  const delBtn = document.getElementById("btnDelete");
+  if(delBtn) delBtn.remove();
+  document.getElementById("overlay").classList.add("show");
+  setTimeout(()=>document.getElementById("fShop").focus(), 300);
+}
+
+// ── Open modal (編輯) ───────────────────────────────────
+function openEdit(id){
+  const rec = data.records.find(r=>r.id===id);
+  if(!rec) return;
+  editingId = id;
+  document.getElementById("modalTitle").textContent = "編輯記錄";
+  document.getElementById("fShop").value = rec.shop || "";
+  document.getElementById("fArea").value = rec.area || "";
+  document.getElementById("fNote").value = rec.note || "";
+  selCat = rec.cat || "meal";
+  selGood = rec.good;
+  selImgs = (rec.imgs || []).slice();
+  buildCatSeg();
+  paintGood();
+  renderImgs();
+
+  // 在編輯模式加入刪除按鈕
+  let delBtn = document.getElementById("btnDelete");
+  if(!delBtn){
+    delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.id = "btnDelete";
+    delBtn.className = "danger";
+    delBtn.textContent = "刪除";
+    delBtn.onclick = ()=>{
+      if(confirm("確定要刪除這筆記錄嗎？")){
+        data.records = data.records.filter(r=>r.id!==editingId);
+        save();
+        closeModal();
+        buildTabs();
+        render();
+      }
+    };
+    document.getElementById("modalBtns").insertBefore(delBtn, document.getElementById("cancel"));
+  }
+  document.getElementById("overlay").classList.add("show");
+}
+
+function closeModal(){
+  document.getElementById("overlay").classList.remove("show");
+  editingId = null;
+  const delBtn = document.getElementById("btnDelete");
+  if(delBtn) delBtn.remove();
+}
+
+document.getElementById("fab").onclick = openNew;
+document.getElementById("cancel").onclick = closeModal;
+document.getElementById("overlay").addEventListener("click", e=>{
+  if(e.target.id==="overlay") closeModal();
+});
+document.getElementById("bOk").onclick = ()=>{ selGood=true; paintGood(); };
+document.getElementById("bBad").onclick = ()=>{ selGood=false; paintGood(); };
+
+// ── Image: file input + clipboard paste ─────────────────
+async function compress(file, maxDim=1000){
+  return new Promise(res=>{
+    const img = new Image();
+    const fr = new FileReader();
+    fr.onload = e=>{
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(Math.max(w,h) > maxDim){
+          const s = maxDim / Math.max(w,h);
+          w = Math.round(w*s);
+          h = Math.round(h*s);
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        res(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = ()=>res(null);
+      img.src = e.target.result;
+    };
+    fr.onerror = ()=>res(null);
+    fr.readAsDataURL(file);
+  });
+}
+
+document.getElementById("fImg").addEventListener("change", async e=>{
+  const files = Array.from(e.target.files || []);
+  for(const f of files){
+    if(selImgs.length >= 9) break;
+    const d = await compress(f);
+    if(d) selImgs.push(d);
+  }
+  e.target.value = "";
+  renderImgs();
+});
+
+// 貼上圖片（在 modal 開啟時有效）
+document.addEventListener("paste", async e=>{
+  // 只在 modal 開啟時處理
+  if(!document.getElementById("overlay").classList.contains("show")) return;
+  const items = e.clipboardData?.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type.startsWith("image/")){
+      e.preventDefault();
+      if(selImgs.length >= 9) break;
+      const file = item.getAsFile();
+      if(file){
+        const d = await compress(file);
+        if(d){
+          selImgs.push(d);
+          renderImgs();
+        }
+      }
+    }
+  }
+});
+
+// ── Save ────────────────────────────────────────────────
+document.getElementById("save").onclick = ()=>{
+  const shop = document.getElementById("fShop").value.trim();
+  if(!shop){ alert("請輸入店名"); return; }
+  if(selGood === null){ alert("請選擇是讚還是雷"); return; }
+
+  if(editingId){
+    // 更新現有記錄
+    const rec = data.records.find(r=>r.id===editingId);
+    if(rec){
+      rec.cat = selCat;
+      rec.shop = shop;
+      rec.area = document.getElementById("fArea").value.trim();
+      rec.good = selGood === true;
+      rec.note = document.getElementById("fNote").value.trim();
+      rec.imgs = selImgs;
+      // 不改 ts，保留原始時間
+    }
+  } else {
+    // 新增
+    const rec = {
+      id: uid(),
+      ts: Date.now(),
+      cat: selCat,
+      shop,
+      area: document.getElementById("fArea").value.trim(),
+      good: selGood === true,
+      note: document.getElementById("fNote").value.trim(),
+      imgs: selImgs,
+    };
+    data.records.push(rec);
+  }
+
+  save();
+  closeModal();
+  buildTabs();
+  render();
+};
+
+// ── 備份 / 匯入 / 清空 ──────────────────────────────────
+function openBackup(){
+  document.getElementById("backupCount").textContent = data.records.length;
+  document.getElementById("backupOverlay").classList.add("show");
+}
+function closeBackup(){
+  document.getElementById("backupOverlay").classList.remove("show");
+}
+
+document.getElementById("menuBtn").onclick = openBackup;
+document.getElementById("backupClose").onclick = closeBackup;
+document.getElementById("backupOverlay").addEventListener("click", e=>{
+  if(e.target.id === "backupOverlay") closeBackup();
+});
+
+// 匯出
+document.getElementById("btnExport").onclick = ()=>{
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    records: data.records
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `踩雷記錄_備份_${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  alert("已開始下載備份檔。\n請到「檔案」App 確認是否成功儲存。");
+};
+
+// 匯入
+document.getElementById("btnImport").onclick = ()=>{
+  document.getElementById("importFile").click();
+};
+document.getElementById("importFile").addEventListener("change", async e=>{
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if(!file) return;
+
+  try{
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    // 支援兩種格式：直接 {records:[]} 或 我們匯出的 {version, records}
+    let incoming = [];
+    if(Array.isArray(parsed)){
+      incoming = parsed;
+    } else if(parsed && Array.isArray(parsed.records)){
+      incoming = parsed.records;
+    } else {
+      throw new Error("格式不正確");
+    }
+
+    // 簡單驗證
+    incoming = incoming.filter(r => r && typeof r.shop === "string" && r.id);
+
+    if(incoming.length === 0){
+      alert("檔案內沒有有效的記錄。");
+      return;
+    }
+
+    const choice = confirm(
+      `找到 ${incoming.length} 筆記錄。\n\n` +
+      `按「確定」→ 合併（保留現有資料，只加入新的）\n` +
+      `按「取消」→ 完全取代（會覆蓋目前所有資料）`
+    );
+
+    if(choice){
+      // 合併：以 id 去重，新的覆蓋舊的
+      const map = new Map();
+      data.records.forEach(r => map.set(r.id, r));
+      incoming.forEach(r => map.set(r.id, r));
+      data.records = Array.from(map.values());
+    } else {
+      // 完全取代
+      if(!confirm("確定要完全覆蓋目前所有資料嗎？此操作無法復原。")) return;
+      data.records = incoming;
+    }
+
+    save();
+    buildTabs();
+    render();
+    closeBackup();
+    alert(`匯入完成！目前共有 ${data.records.length} 筆記錄。`);
+  } catch(err){
+    alert("匯入失敗：檔案不是有效的 JSON 備份。\n" + (err.message || ""));
+  }
+});
+
+// 清空
+document.getElementById("btnClear").onclick = ()=>{
+  if(!confirm("確定要清空全部資料嗎？此操作無法復原。\n建議先匯出備份。")) return;
+  if(!confirm("再確認一次：真的要刪除所有記錄？")) return;
+  data.records = [];
+  save();
+  buildTabs();
+  render();
+  closeBackup();
+  alert("已清空。");
+};
+
+// 初始化
+buildTabs();
+render();
+</script>
+</body>
+</html>
